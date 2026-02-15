@@ -1,4 +1,0 @@
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow from 192.168.1.X to any port 69 proto udp
-sudo ufw allow from 192.168.1.X to any port 5000 proto tcp
