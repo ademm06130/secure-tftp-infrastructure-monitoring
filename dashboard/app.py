@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Dashboard Web Flask pour la supervision du serveur TFTP
-Avec statut du serveur et des services
+Version CORRIGÉE avec bug fix
 """
 
 from flask import Flask, render_template, jsonify
@@ -13,11 +13,8 @@ from config import DB_CONFIG
 
 app = Flask(__name__)
 
-# ==============================
-# FONCTION DE CONNEXION DB
-# ==============================
+
 def get_db_connection():
-    """Établit la connexion à la base de données MySQL"""
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
         return conn
@@ -25,11 +22,8 @@ def get_db_connection():
         print(f"[DB ERROR] ❌ {e}")
         return None
 
-# ==============================
-# STATUT DU SERVEUR
-# ==============================
+
 def get_server_status():
-    """Récupère les informations système du serveur"""
     try:
         # CPU
         cpu_percent = psutil.cpu_percent(interval=1)
@@ -65,11 +59,8 @@ def get_server_status():
         print(f"[SERVER STATUS ERROR] ❌ {e}")
         return None
 
-# ==============================
-# STATUT DES SERVICES
-# ==============================
+
 def get_service_status(service_name):
-    """Vérifie le statut d'un service systemd"""
     try:
         result = subprocess.run(
             ['systemctl', 'is-active', service_name],
@@ -78,14 +69,12 @@ def get_service_status(service_name):
         )
         status = result.stdout.strip()
 
-        # Récupérer plus d'infos
         status_result = subprocess.run(
             ['systemctl', 'status', service_name],
             capture_output=True,
             text=True
         )
 
-        # Extraire le PID si le service est actif
         pid = None
         for line in status_result.stdout.split('\n'):
             if 'Main PID:' in line:
@@ -108,7 +97,6 @@ def get_service_status(service_name):
         }
 
 def get_all_services_status():
-    """Récupère le statut de tous les services"""
     services = [
         'tftpd-hpa',
         'tftp-monitor',
@@ -120,9 +108,7 @@ def get_all_services_status():
 
     return [get_service_status(service) for service in services]
 
-# ==============================
-# STATISTIQUES GÉNÉRALES
-# ==============================
+
 def get_statistics():
     """Récupère les statistiques générales"""
     conn = get_db_connection()
@@ -132,15 +118,14 @@ def get_statistics():
     cursor = conn.cursor(dictionary=True)
     stats = {}
 
-    # Total transferts aujourd'hui
+    # ✅ FIX: Récupération correcte du total aujourd'hui
     cursor.execute("""
         SELECT COUNT(*) as total
         FROM file_transfers
         WHERE DATE(timestamp) = CURDATE()
     """)
+    stats['today_total'] = cursor.fetchone()['total']  # ✅ LIGNE AJOUTÉE
 
-
-    # Transferts réussis aujourd'hui
     cursor.execute("""
         SELECT COUNT(*) as success
         FROM file_transfers
@@ -148,7 +133,6 @@ def get_statistics():
     """)
     stats['today_success'] = cursor.fetchone()['success']
 
-    # Transferts échoués aujourd'hui
     cursor.execute("""
         SELECT COUNT(*) as failed
         FROM file_transfers
@@ -156,13 +140,11 @@ def get_statistics():
     """)
     stats['today_failed'] = cursor.fetchone()['failed']
 
-    # Taux de succès
     if stats['today_total'] > 0:
         stats['success_rate'] = round((stats['today_success'] / stats['today_total']) * 100, 1)
     else:
         stats['success_rate'] = 0
 
-    # Nombre d'IPs actives aujourd'hui
     cursor.execute("""
         SELECT COUNT(DISTINCT client_ip) as active_ips
         FROM file_transfers
@@ -170,7 +152,6 @@ def get_statistics():
     """)
     stats['active_ips'] = cursor.fetchone()['active_ips']
 
-    # Total global
     cursor.execute("SELECT COUNT(*) as total FROM file_transfers")
     stats['total_all_time'] = cursor.fetchone()['total']
 
@@ -179,11 +160,8 @@ def get_statistics():
 
     return stats
 
-# ==============================
-# DERNIERS TRANSFERTS
-# ==============================
+
 def get_recent_transfers(limit=20):
-    """Récupère les derniers transferts"""
     conn = get_db_connection()
     if not conn:
         return []
@@ -199,7 +177,6 @@ def get_recent_transfers(limit=20):
 
     transfers = cursor.fetchall()
 
-    # Convertir les timestamps en format lisible
     for transfer in transfers:
         transfer['timestamp'] = transfer['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
         transfer['file_size'] = f"{transfer['file_size']:,}" if transfer['file_size'] else "N/A"
@@ -209,9 +186,7 @@ def get_recent_transfers(limit=20):
 
     return transfers
 
-# ==============================
-# TRANSFERTS PAR HEURE (24h)
-# ==============================
+
 def get_hourly_stats():
     """Récupère les stats par heure pour les dernières 24h"""
     conn = get_db_connection()
@@ -239,9 +214,7 @@ def get_hourly_stats():
 
     return stats
 
-# ==============================
-# TOP FICHIERS
-# ==============================
+
 def get_top_files(limit=5):
     """Récupère les fichiers les plus transférés"""
     conn = get_db_connection()
@@ -265,9 +238,7 @@ def get_top_files(limit=5):
 
     return files
 
-# ==============================
-# ROUTES
-# ==============================
+
 
 @app.route('/')
 def index():
@@ -313,9 +284,7 @@ def api_top_files():
     """API JSON pour les fichiers les plus transférés"""
     return jsonify(get_top_files())
 
-# ==============================
-# POINT D'ENTRÉE
-# ==============================
+
 if __name__ == '__main__':
     print("🌐 Démarrage du dashboard web...")
     app.run(host='0.0.0.0', port=5000, debug=False)

@@ -41,6 +41,9 @@
         .subtitle {
             color: #666;
             font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .stats-grid {
@@ -79,7 +82,6 @@
             color: #ef4444;
         }
 
-        /* Statut Serveur */
         .server-status {
             background: white;
             padding: 20px;
@@ -145,7 +147,6 @@
             background: #ef4444;
         }
 
-        /* Statut Services */
         .services-status {
             background: white;
             padding: 20px;
@@ -289,84 +290,98 @@
         }
 
         .refresh-badge {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
             background: #10b981;
             color: white;
             padding: 5px 15px;
             border-radius: 20px;
             font-size: 0.85em;
-            margin-left: 10px;
+        }
+
+        .refresh-badge.error {
+            background: #ef4444;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1> Dashboard TFTP - Supervision en Temps Réel</h1>
-            <p class="subtitle">Surveillance des transferts de fichiers TFTP <span class="refresh-badge" id="refresh-timer">Actualisation : 10s</span></p>
+            <h1>🖥️ Dashboard TFTP - Supervision en Temps Réel</h1>
+            <div class="subtitle">
+                Surveillance des transferts de fichiers TFTP
+                <span class="refresh-badge" id="refresh-status">
+                    <span id="refresh-timer">Actualisation : 5s</span>
+                </span>
+            </div>
         </header>
 
         <!-- Statistiques Transferts -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-label">Transferts Aujourd'hui</div>
-                <div class="stat-value">{{ stats.today_total }}</div>
+                <div class="stat-value" id="stat-today-total">{{ stats.today_total }}</div>
             </div>
             <div class="stat-card success">
                 <div class="stat-label">✅ Succès</div>
-                <div class="stat-value">{{ stats.today_success }}</div>
+                <div class="stat-value" id="stat-today-success">{{ stats.today_success }}</div>
             </div>
             <div class="stat-card danger">
                 <div class="stat-label">❌ Échecs</div>
-                <div class="stat-value">{{ stats.today_failed }}</div>
+                <div class="stat-value" id="stat-today-failed">{{ stats.today_failed }}</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Taux de Succès</div>
-                <div class="stat-value">{{ stats.success_rate }}%</div>
+                <div class="stat-value" id="stat-success-rate">{{ stats.success_rate }}%</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">IPs Actives</div>
-                <div class="stat-value">{{ stats.active_ips }}</div>
+                <div class="stat-value" id="stat-active-ips">{{ stats.active_ips }}</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Total Global</div>
-                <div class="stat-value">{{ stats.total_all_time }}</div>
+                <div class="stat-value" id="stat-total-alltime">{{ stats.total_all_time }}</div>
             </div>
         </div>
 
         <!-- Statut du Serveur -->
-        <div class="server-status">
+        <div class="server-status" id="server-status-container" 
+             data-cpu="{{ server.cpu_percent }}" 
+             data-ram="{{ server.ram_percent }}" 
+             data-disk="{{ server.disk_percent }}">
             <div class="server-title">🖥️ Statut du Serveur</div>
-            <div class="server-grid">
+            <div class="server-grid" id="server-metrics">
                 <div class="server-item">
                     <div class="server-item-label">CPU</div>
-                    <div class="server-item-value">{{ server.cpu_percent }}%</div>
+                    <div class="server-item-value" id="server-cpu">{{ server.cpu_percent }}%</div>
                     <div class="progress-bar">
-                        <div class="progress-fill {% if server.cpu_percent > 80 %}danger{% elif server.cpu_percent > 60 %}warning{% endif %}"
-                             style="width: {{ server.cpu_percent }}%"></div>
+                        <div class="progress-fill" id="server-cpu-bar"></div>
                     </div>
                 </div>
                 <div class="server-item">
                     <div class="server-item-label">RAM</div>
-                    <div class="server-item-value">{{ server.ram_percent }}%</div>
+                    <div class="server-item-value" id="server-ram">{{ server.ram_percent }}%</div>
                     <div class="progress-bar">
-                        <div class="progress-fill {% if server.ram_percent > 80 %}danger{% elif server.ram_percent > 60 %}warning{% endif %}"
-                             style="width: {{ server.ram_percent }}%"></div>
+                        <div class="progress-fill" id="server-ram-bar"></div>
                     </div>
-                    <div class="server-item-label" style="margin-top:5px;">{{ server.ram_used }}GB / {{ server.ram_total }}GB</div>
+                    <div class="server-item-label" style="margin-top:5px;" id="server-ram-details">
+                        {{ server.ram_used }}GB / {{ server.ram_total }}GB
+                    </div>
                 </div>
                 <div class="server-item">
                     <div class="server-item-label">Disque</div>
-                    <div class="server-item-value">{{ server.disk_percent }}%</div>
+                    <div class="server-item-value" id="server-disk">{{ server.disk_percent }}%</div>
                     <div class="progress-bar">
-                        <div class="progress-fill {% if server.disk_percent > 80 %}danger{% elif server.disk_percent > 60 %}warning{% endif %}"
-                             style="width: {{ server.disk_percent }}%"></div>
+                        <div class="progress-fill" id="server-disk-bar"></div>
                     </div>
-                    <div class="server-item-label" style="margin-top:5px;">{{ server.disk_used }}GB / {{ server.disk_total }}GB</div>
+                    <div class="server-item-label" style="margin-top:5px;" id="server-disk-details">
+                        {{ server.disk_used }}GB / {{ server.disk_total }}GB
+                    </div>
                 </div>
                 <div class="server-item">
                     <div class="server-item-label">Uptime</div>
-                    <div class="server-item-value" style="font-size:1.2em;">{{ server.uptime }}</div>
+                    <div class="server-item-value" style="font-size:1.2em;" id="server-uptime">{{ server.uptime }}</div>
                 </div>
             </div>
         </div>
@@ -374,9 +389,9 @@
         <!-- Statut des Services -->
         <div class="services-status">
             <div class="server-title">⚙️ Statut des Services</div>
-            <div class="services-grid">
+            <div class="services-grid" id="services-container">
                 {% for service in services %}
-                <div class="service-card {% if not service.active %}inactive{% endif %}">
+                <div class="service-card {% if not service.active %}inactive{% endif %}" data-service="{{ service.name }}">
                     <div>
                         <div class="service-name">{{ service.name }}</div>
                         {% if service.pid %}
@@ -418,7 +433,7 @@
                         <th>Date & Heure</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="transfers-tbody">
                     {% for transfer in transfers %}
                     <tr>
                         <td><strong>#{{ transfer.id }}</strong></td>
@@ -448,67 +463,237 @@
     </div>
 
     <script>
-        // Auto-refresh toutes les 10 secondes
-        let countdown = 10;
+        // Configuration
+        let countdown = 5;
+        let hourlyChart, filesChart;
+        let isUpdating = false;
+
+        // Mise à jour des statistiques
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/stats');
+                if (!response.ok) throw new Error('API Stats failed');
+                
+                const stats = await response.json();
+                
+                document.getElementById('stat-today-total').textContent = stats.today_total || 0;
+                document.getElementById('stat-today-success').textContent = stats.today_success || 0;
+                document.getElementById('stat-today-failed').textContent = stats.today_failed || 0;
+                document.getElementById('stat-success-rate').textContent = (stats.success_rate || 0) + '%';
+                document.getElementById('stat-active-ips').textContent = stats.active_ips || 0;
+                document.getElementById('stat-total-alltime').textContent = stats.total_all_time || 0;
+            } catch (error) {
+                // Erreur silencieuse
+            }
+        }
+
+        // Mise à jour du serveur
+        async function updateServer() {
+            try {
+                const response = await fetch('/api/server');
+                if (!response.ok) throw new Error('API Server failed');
+                
+                const server = await response.json();
+                
+                document.getElementById('server-cpu').textContent = server.cpu_percent + '%';
+                updateProgressBar('server-cpu-bar', server.cpu_percent);
+                
+                document.getElementById('server-ram').textContent = server.ram_percent + '%';
+                updateProgressBar('server-ram-bar', server.ram_percent);
+                document.getElementById('server-ram-details').textContent = 
+                    `${server.ram_used}GB / ${server.ram_total}GB`;
+                
+                document.getElementById('server-disk').textContent = server.disk_percent + '%';
+                updateProgressBar('server-disk-bar', server.disk_percent);
+                document.getElementById('server-disk-details').textContent = 
+                    `${server.disk_used}GB / ${server.disk_total}GB`;
+                
+                document.getElementById('server-uptime').textContent = server.uptime;
+            } catch (error) {
+                // Erreur silencieuse
+            }
+        }
+
+        // Helper pour les barres de progression
+        function updateProgressBar(barId, percent) {
+            const bar = document.getElementById(barId);
+            bar.style.width = percent + '%';
+            bar.className = 'progress-fill';
+            if (percent > 80) {
+                bar.classList.add('danger');
+            } else if (percent > 60) {
+                bar.classList.add('warning');
+            }
+        }
+
+        // Mise à jour des services
+        async function updateServices() {
+            try {
+                const response = await fetch('/api/services');
+                if (!response.ok) throw new Error('API Services failed');
+                
+                const services = await response.json();
+                const container = document.getElementById('services-container');
+                
+                container.innerHTML = services.map(service => `
+                    <div class="service-card ${service.active ? '' : 'inactive'}" data-service="${service.name}">
+                        <div>
+                            <div class="service-name">${service.name}</div>
+                            ${service.pid ? `<div class="service-pid">PID: ${service.pid}</div>` : ''}
+                        </div>
+                        <div class="service-status ${service.active ? 'active' : 'inactive'}">
+                            ${service.status}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                // Erreur silencieuse
+            }
+        }
+
+        // Mise à jour des transferts
+        async function updateTransfers() {
+            try {
+                const response = await fetch('/api/transfers');
+                if (!response.ok) throw new Error('API Transfers failed');
+                
+                const transfers = await response.json();
+                const tbody = document.getElementById('transfers-tbody');
+                
+                tbody.innerHTML = transfers.slice(0, 20).map(transfer => `
+                    <tr>
+                        <td><strong>#${transfer.id}</strong></td>
+                        <td>${transfer.filename}</td>
+                        <td>${transfer.client_ip}</td>
+                        <td>${transfer.file_size} bytes</td>
+                        <td>
+                            <span class="badge badge-${transfer.transfer_type}">
+                                ${transfer.transfer_type}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge badge-${transfer.status}">
+                                ${transfer.status}
+                            </span>
+                        </td>
+                        <td>${transfer.timestamp}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                // Erreur silencieuse
+            }
+        }
+
+        // Fonction principale d'actualisation
+        async function refreshDashboard() {
+            if (isUpdating) return;
+            
+            isUpdating = true;
+            const statusBadge = document.getElementById('refresh-status');
+            
+            try {
+                await Promise.all([
+                    updateStats(),
+                    updateServer(),
+                    updateServices(),
+                    updateTransfers(),
+                    updateCharts()
+                ]);
+                
+                statusBadge.classList.remove('error');
+            } catch (error) {
+                statusBadge.classList.add('error');
+                document.getElementById('refresh-timer').textContent = 'Erreur de connexion';
+            } finally {
+                isUpdating = false;
+                countdown = 5;
+            }
+        }
+
+        // Mise à jour des graphiques
+        async function updateCharts() {
+            try {
+                const hourlyData = await fetch('/api/hourly').then(r => r.json());
+                if (hourlyChart) {
+                    hourlyChart.data.labels = hourlyData.map(d => `${d.hour}h`);
+                    hourlyChart.data.datasets[0].data = hourlyData.map(d => d.success);
+                    hourlyChart.data.datasets[1].data = hourlyData.map(d => d.failed);
+                    hourlyChart.update('none');
+                }
+
+                const filesData = await fetch('/api/top-files').then(r => r.json());
+                if (filesChart) {
+                    filesChart.data.labels = filesData.map(d => d.filename);
+                    filesChart.data.datasets[0].data = filesData.map(d => d.count);
+                    filesChart.update('none');
+                }
+            } catch (error) {
+                // Erreur silencieuse
+            }
+        }
+
+        // Timer de compte à rebours
         setInterval(() => {
             countdown--;
             if (countdown <= 0) {
-                location.reload();
+                refreshDashboard();
+            } else {
+                document.getElementById('refresh-timer').textContent = `Actualisation : ${countdown}s`;
             }
-            document.getElementById('refresh-timer').textContent = `Actualisation : ${countdown}s`;
         }, 1000);
 
-        // Graphique des transferts par heure
-        fetch('/api/hourly')
-            .then(response => response.json())
-            .then(data => {
-                const hours = data.map(d => `${d.hour}h`);
-                const success = data.map(d => d.success);
-                const failed = data.map(d => d.failed);
+        window.addEventListener('DOMContentLoaded', async () => {
+            const serverContainer = document.getElementById('server-status-container');
+            const cpuPercent = parseFloat(serverContainer.dataset.cpu);
+            const ramPercent = parseFloat(serverContainer.dataset.ram);
+            const diskPercent = parseFloat(serverContainer.dataset.disk);
+            
+            updateProgressBar('server-cpu-bar', cpuPercent);
+            updateProgressBar('server-ram-bar', ramPercent);
+            updateProgressBar('server-disk-bar', diskPercent);
 
-                const ctx = document.getElementById('hourlyChart').getContext('2d');
-                new Chart(ctx, {
+            try {
+                const hourlyData = await fetch('/api/hourly').then(r => r.json());
+                const ctx1 = document.getElementById('hourlyChart').getContext('2d');
+                hourlyChart = new Chart(ctx1, {
                     type: 'bar',
                     data: {
-                        labels: hours,
+                        labels: hourlyData.map(d => `${d.hour}h`),
                         datasets: [
                             {
                                 label: 'Succès',
-                                data: success,
+                                data: hourlyData.map(d => d.success),
                                 backgroundColor: 'rgba(16, 185, 129, 0.7)',
                             },
                             {
                                 label: 'Échecs',
-                                data: failed,
+                                data: hourlyData.map(d => d.failed),
                                 backgroundColor: 'rgba(239, 68, 68, 0.7)',
                             }
                         ]
                     },
                     options: {
                         responsive: true,
+                        maintainAspectRatio: true,
                         scales: {
                             y: {
                                 beginAtZero: true
                             }
+                        },
+                        animation: {
+                            duration: 0
                         }
                     }
                 });
-            });
 
-        // Graphique des fichiers les plus transférés
-        fetch('/api/top-files')
-            .then(response => response.json())
-            .then(data => {
-                const files = data.map(d => d.filename);
-                const counts = data.map(d => d.count);
-
-                const ctx = document.getElementById('filesChart').getContext('2d');
-                new Chart(ctx, {
+                const filesData = await fetch('/api/top-files').then(r => r.json());
+                const ctx2 = document.getElementById('filesChart').getContext('2d');
+                filesChart = new Chart(ctx2, {
                     type: 'doughnut',
                     data: {
-                        labels: files,
+                        labels: filesData.map(d => d.filename),
                         datasets: [{
-                            data: counts,
+                            data: filesData.map(d => d.count),
                             backgroundColor: [
                                 'rgba(102, 126, 234, 0.8)',
                                 'rgba(118, 75, 162, 0.8)',
@@ -520,14 +705,20 @@
                     },
                     options: {
                         responsive: true,
+                        maintainAspectRatio: true,
                         plugins: {
                             legend: {
                                 position: 'bottom'
                             }
+                        },
+                        animation: {
+                            duration: 0
                         }
                     }
                 });
-            });
+            } catch (error) {
+            }
+        });
     </script>
 </body>
 </html>
